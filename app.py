@@ -1,12 +1,10 @@
 from flask import Flask,request,render_template,json,jsonify
 from flask_sqlalchemy import SQLAlchemy
-
 from flask_marshmallow import Marshmallow
 from flask_restplus import Api, Resource, fields
-
-import enum
 from flask_migrate import Migrate,MigrateCommand
 from flask_script import Shell,Manager
+import enum
 
 app = Flask(__name__)
 
@@ -22,8 +20,6 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
 app.config['WTF_CSRF_ENABLED'] = False
 db = SQLAlchemy(app)
 
-class
-
 class AuthRank(enum.Enum):
     Admin = "Admin"
     Customer = 'Customer'
@@ -34,30 +30,86 @@ class AuthRank(enum.Enum):
 
 
 class Users(db.Model):
-    _table = 'Users'
-    userid = db.Column(db.String(20),primary_key=True)
-    passwd = db.Column(db.String(20))
-    authRank = db.Column(db.Enum(AuthRank),unique=False)
+    __table_name__ = 'Users'
+    ID = db.Column(db.String,primary_key=True,nullable=False)
+    Password = db.Column(db.String,nullable=False)
+    AuthorityLevel = db.Column(db.Enum(AuthRank),unique=False)
+    UserName = db.Column(db.String)
 
-    def __init__(self,userid,passwd,authRank):
-        self.userid = userid
-        self.passwd = passwd
-        self.authRank = authRank
+    def __init__(self,userid,passwd,authRank,name):
+        self.ID = userid
+        self.Password = passwd
+        self.AuthorityLevel = authRank
+        self.UserName = name
 
-    def __str__(self):
-        return '<User %r>' % self.userid
+    def __repr__(self):
+        return '<User %r>' % self.ID
 
-@app.route('/insert_user',methods=['GET','POST'])
+    def to_json(self):
+        dict = self.__dict__
+        if "_sa_instance_state" in dict:
+            del dict["_sa_instance_state"]
+        return dict
+
+    # def jsondata(self):
+    #     data = {
+    #         'ID' : self.ID,
+    #         'Password' : self.Password,
+    #         'AuthorityLevel' : self.AuthorityLevel,
+    #         'UserName' : self.UserName,
+    #     }
+    #     return jsonify(data)
+
+
+
+def search_user(id):
+    '''search user from database'''
+    with app.app_context():
+        user = db.session.query(Users).filter_by(ID=id).first()
+        return user
+    # with app.app_context():
+    #     return jsonify(user.to_json())
+
+
+@app.route('/user/login',methods=['GET','POST'])
+def login_user():
+    '''judge when user try to login'''
+
+@app.route('/user/list')
+def list_all_users():
+    user = db.session.
+
+
+@app.route('/user/insert',methods=['GET','POST'])
 def insert_user():
     '''add a user through POST from android'''
     userDic = request.form
-    user = Users(userDic['name'],userDic['password'],userDic['authRank'])
-    print('23333333')
+    user = Users(userDic['ID'],userDic['Password'],userDic['AuthorityLevel'],userDic['UserName'])
     db.session.add(user)
     db.session.commit()
     return jsonify({'status': '200', 'message': '插入成功！'})
 
-@app.route('/delete')
+@app.route('/user/delete/<userid>')
+def delete_user(userid):
+    '''delete a user '''
+    user = db.session.query(Users).filter_by(ID=userid).first()
+    # user = db.session.query(Users).filter_by(userid=userid).all()
+    db.session.delete(user)
+    db.session.commit()
+    return jsonify({'status': '200', 'message': '删除成功！'})
+
+@app.route('/user/update',methods=['GET','POST'])
+def update_user():
+    '''update info of user'''
+    userDic = request.form
+    id,passwd,authRank,name = userDic['ID'],userDic['Password'],userDic['AuthorityLevel'],userDic['UserName']
+    user = db.session.query(Users).filter_by(ID=id).first()
+    user.Password,user.AuthorityLevel,user.UserName = passwd,authRank,name
+    db.session.add(user)
+    db.session.commit()
+    return jsonify({'status': '200', 'message': '修改成功！'})
+
+
 
 
 #测试入口
@@ -67,8 +119,7 @@ def hello_world():
 
 
 if __name__ == '__main__':
-    #
-    app.run()
+    app.run(debug=True)
 
 
 
