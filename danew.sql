@@ -12,7 +12,16 @@ Target Server Version	:10.3.15-MariaDB
 
 use danew;
 SET FOREIGN_KEY_CHECKS=0;
-
+CREATE TABLE `Employee` (
+  `employee_id` varchar(20) NOT NULL,
+  `country` varchar(20)  NOT NULL,
+  `gender` enum('male', 'female') NOT NULL,
+  PRIMARY KEY (`employee_id`)
+) ENGINE=MyISAM AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;
+'Employee', {
+    'employee_id': fields.String,
+    'country': fields.String,
+    'gender': fields.String(enum=['male', 'female']),
 
 -- ----------------------------
 -- Table structure for `users`

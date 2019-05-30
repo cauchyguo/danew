@@ -1,12 +1,14 @@
 from flask import Flask,request,render_template,json,jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_marshmallow import Marshmallow
+from marshmallow_enum import EnumField
 from flask_restplus import Api, Resource, fields
 from flask_migrate import Migrate,MigrateCommand
 from flask_script import Shell,Manager
 import enum
 
 app = Flask(__name__)
+ma = Marshmallow(app)
 
 # 此处是配置SQLALCHEMY_DATABASE_URI, 前面的mysql+mysqlconnetor指的是数据库的类型以及驱动类型
 # 后面的username,pwd,addr,port,dbname分别代表用户名、密码、地址、端口以及库名
@@ -20,21 +22,23 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
 app.config['WTF_CSRF_ENABLED'] = False
 db = SQLAlchemy(app)
 
-class AuthRank(enum.Enum):
-    Admin = "Admin"
-    Customer = 'Customer'
-    Expressmen = 'Expressmen'
-    CustomerService = 'CustomerService'
-    Finance = 'Finance'
-    Humanresource = 'Humanresource'
+# class AuthRank(enum.Enum):
+#     Admin = "Admin"
+#     Customer = 'Customer'
+#     Expressmen = 'Expressmen'
+#     CustomerService = 'CustomerService'
+#     Finance = 'Finance'
+#     Humanresource = 'Humanresource'
+
+
 
 
 class Users(db.Model):
-    __table_name__ = 'Users'
+    _tablename= 'Users'
+    UserName = db.Column(db.String)
     ID = db.Column(db.String,primary_key=True,nullable=False)
     Password = db.Column(db.String,nullable=False)
-    AuthorityLevel = db.Column(db.Enum(AuthRank),unique=False)
-    UserName = db.Column(db.String)
+    AuthorityLevel = db.Column(db.Enum("Admin",'Customer','Expressmen','CustomerService','Finance','Humanresource'),unique=False)
 
     def __init__(self,userid,passwd,authRank,name):
         self.ID = userid
@@ -51,16 +55,19 @@ class Users(db.Model):
             del dict["_sa_instance_state"]
         return dict
 
-    # def jsondata(self):
-    #     data = {
-    #         'ID' : self.ID,
-    #         'Password' : self.Password,
-    #         'AuthorityLevel' : self.AuthorityLevel,
-    #         'UserName' : self.UserName,
-    #     }
-    #     return jsonify(data)
+    def jsondata(self):
+        data = {
+            'ID' : self.ID,
+            'Password' : self.Password,
+            'AuthorityLevel' : self.AuthorityLevel,
+            'UserName' : self.UserName,
+        }
+        return jsonify(data)
 
-
+class UserModelSchema(ma.ModelSchema):
+    # type = EnumField(AuthRank,by_value=True)
+    class Meta:
+        model = Users
 
 def search_user(id):
     '''search user from database'''
@@ -77,7 +84,17 @@ def login_user():
 
 @app.route('/user/list')
 def list_all_users():
-    user = db.session.
+    # users = db.session.query(Users).all()
+    # # print(user[0].jsondata())
+    # # print(user[0].jsondata())
+    # with app.app_context():
+    #     List = [user.jsondata() for user in users]
+    # # return List
+
+    users_schema = UserModelSchema(many=True)
+    all_users = db.session.query(Users).all()
+    result = users_schema.dumps(all_users,ensure_ascii=False)
+    return result.data
 
 
 @app.route('/user/insert',methods=['GET','POST'])
