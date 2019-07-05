@@ -1,11 +1,6 @@
 from flask import Flask,request,render_template,json,jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_marshmallow import Marshmallow
-from marshmallow_enum import EnumField
-from flask_restplus import Api, Resource, fields
-from flask_migrate import Migrate,MigrateCommand
-from flask_script import Shell,Manager
-import enum
 
 app = Flask(__name__)
 ma = Marshmallow(app)

@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/danew.iml" filepath="$PROJECT_DIR$/.idea/danew.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/danew-backend.iml" filepath="$PROJECT_DIR$/.idea/danew-backend.iml" />
     </modules>
   </component>
 </project>
