@@ -22,110 +22,97 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
 app.config['WTF_CSRF_ENABLED'] = False
 db = SQLAlchemy(app)
 
-# class AuthRank(enum.Enum):
-#     Admin = "Admin"
-#     Customer = 'Customer'
-#     Expressmen = 'Expressmen'
-#     CustomerService = 'CustomerService'
-#     Finance = 'Finance'
-#     Humanresource = 'Humanresource'
-
-
-
-
 class Users(db.Model):
-    _tablename= 'Users'
-    UserName = db.Column(db.String)
-    ID = db.Column(db.String,primary_key=True,nullable=False)
+    # __tablename__= 'Users'
+    Phone = db.Column(db.String,nullable=False)
+    UserName = db.Column(db.String,primary_key=True,unique=True,nullable=False)
+    ID = db.Column(db.String,nullable=False)
     Password = db.Column(db.String,nullable=False)
-    AuthorityLevel = db.Column(db.Enum("Admin",'Customer','Expressmen','CustomerService','Finance','Humanresource'),unique=False)
+    Address = db.Column(db.String,nullable=False)
+    #,'Expressmen','CustomerService','Finance','Humanresource'
+    AuthorityLevel = db.Column(db.Enum("Admin",'Customer'),nullable=False)
 
-    def __init__(self,userid,passwd,authRank,name):
+    def __init__(self,userid,name,passwd,phone,address,authRank='Customer',):
+        self.UserName = name
         self.ID = userid
         self.Password = passwd
+        self.Phone = phone
+        self.Address = address
         self.AuthorityLevel = authRank
-        self.UserName = name
 
     def __repr__(self):
         return '<User %r>' % self.ID
 
-    def to_json(self):
-        dict = self.__dict__
-        if "_sa_instance_state" in dict:
-            del dict["_sa_instance_state"]
-        return dict
-
-    def jsondata(self):
-        data = {
-            'ID' : self.ID,
-            'Password' : self.Password,
-            'AuthorityLevel' : self.AuthorityLevel,
-            'UserName' : self.UserName,
-        }
-        return jsonify(data)
-
 class UserModelSchema(ma.ModelSchema):
-    # type = EnumField(AuthRank,by_value=True)
     class Meta:
-        model = Users
+        # model = Users
+        fields = ('UserName','Phone','Address')
 
-def search_user(id):
-    '''search user from database'''
-    with app.app_context():
-        user = db.session.query(Users).filter_by(ID=id).first()
-        return user
-    # with app.app_context():
-    #     return jsonify(user.to_json())
-
+user_schema = UserModelSchema()
+users_schema = UserModelSchema(many=True)
 
 @app.route('/user/login',methods=['GET','POST'])
 def login_user():
     '''judge when user try to login'''
+    user_data = request.form
+    name = user_data['name']
+    passwd = user_data['password']
+    print(name,passwd)
+    user = Users.query.get(name)
+    print(user)
+    if user.Password == passwd:
+        return jsonify({'status': '200', 'message': '登录成功!'})
+    return jsonify({'status': '401','message': '登录失败!'})
 
 @app.route('/user/list')
 def list_all_users():
-    # users = db.session.query(Users).all()
-    # # print(user[0].jsondata())
-    # # print(user[0].jsondata())
-    # with app.app_context():
-    #     List = [user.jsondata() for user in users]
-    # # return List
-
-    users_schema = UserModelSchema(many=True)
     all_users = db.session.query(Users).all()
-    result = users_schema.dumps(all_users,ensure_ascii=False)
-    return result.data
+    result = users_schema.dumps(all_users)
+    return jsonify(result.data)
+    # return result.data
+    # return json.dumps(result.data)
 
 
 @app.route('/user/insert',methods=['GET','POST'])
 def insert_user():
     '''add a user through POST from android'''
-    userDic = request.form
-    user = Users(userDic['ID'],userDic['Password'],userDic['AuthorityLevel'],userDic['UserName'])
+    user_data = request.form
+    user = Users(user_data['ID'],user_data['Password'],user_data['AuthorityLevel'],user_data['UserName'])
     db.session.add(user)
     db.session.commit()
     return jsonify({'status': '200', 'message': '插入成功！'})
 
-@app.route('/user/delete/<userid>')
-def delete_user(userid):
+@app.route('/user/delete/<username>')
+def delete_user(username):
     '''delete a user '''
-    user = db.session.query(Users).filter_by(ID=userid).first()
+    user = db.session.query.get(username)
     # user = db.session.query(Users).filter_by(userid=userid).all()
     db.session.delete(user)
     db.session.commit()
     return jsonify({'status': '200', 'message': '删除成功！'})
 
+
+@app.route(r'/user/query/<username>')
+def query_user(username):
+    '''query a user'''
+    user = Users.query.get(username)
+    if user:
+        result = user_schema.dumps(user)
+        return jsonify(result.data)
+    else:
+        return jsonify({'status': '401','message': '查询失败!'})
+
+
 @app.route('/user/update',methods=['GET','POST'])
 def update_user():
     '''update info of user'''
-    userDic = request.form
-    id,passwd,authRank,name = userDic['ID'],userDic['Password'],userDic['AuthorityLevel'],userDic['UserName']
-    user = db.session.query(Users).filter_by(ID=id).first()
-    user.Password,user.AuthorityLevel,user.UserName = passwd,authRank,name
+    user_data = request.form
+    name,passwd,phone,address = user_data['UserName'],user_data['Password'],user_data['phone'],user_data['address']
+    user = db.session.query().get(name)
+    user.UserName,user.Password,user.Phone,user.Address = name,passwd,phone,address
     db.session.add(user)
     db.session.commit()
     return jsonify({'status': '200', 'message': '修改成功！'})
-
 
 
 
@@ -136,7 +123,7 @@ def hello_world():
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True,host="0.0.0.0")
 
 
 
